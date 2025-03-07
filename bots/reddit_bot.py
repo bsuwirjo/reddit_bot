@@ -3,7 +3,7 @@ import logging
 class RedditBot:
     def __init__(self, account_manager, config, content_provider=None, reddit_instance=None, username=None):
         """
-        RedditBot that can both post and reply on Reddit.
+        RedditBot that can post and reply on Reddit.
         
         Parameters:
             account_manager: An instance of AccountManager.
@@ -15,8 +15,8 @@ class RedditBot:
         self.account_manager = account_manager
         self.config = config
         self.content_provider = content_provider
-        self.reddit = reddit_instance  # Dedicated Reddit instance for this bot/account.
-        self.username = username  # Store the username for identification.
+        self.reddit = reddit_instance
+        self.username = username
         self.logger = logging.getLogger(self.__class__.__name__)
         self.subreddits = config.get("subreddits", [])
         self.chain_length = config.get("replies", {}).get("chain_length", 1)
@@ -31,7 +31,7 @@ class RedditBot:
 
     def generate_post_content(self):
         """
-        Generate a post's title and body using the content provider if available.
+        Generate a post's title and body using the content provider.
         """
         if self.content_provider:
             return self.content_provider.generate_post_content()
@@ -99,3 +99,38 @@ class RedditBot:
                 self.logger.error("No target provided for reply command.")
         else:
             self.logger.error(f"Unknown command: {command}")
+
+    def learn_and_post(self, subreddit_name):
+        """
+        Learn about a subreddit by reading the first 5 posts and their top-level comments,
+        then generate and post content that reflects the style of the subreddit combined with
+        the bot's own personality.
+        
+        Parameters:
+            subreddit_name: The name of the subreddit to learn from.
+        """
+        reddit = self.get_reddit()
+        subreddit = reddit.subreddit(subreddit_name)
+        learned_context = ""
+        try:
+            for submission in subreddit.new(limit=5):
+                learned_context += f"Post Title: {submission.title}\nPost Body: {submission.selftext}\n"
+                submission.comments.replace_more(limit=0)
+                for comment in submission.comments:
+                    learned_context += f"Comment: {comment.body}\n"
+                learned_context += "\n"
+        except Exception as e:
+            self.logger.error(f"Error learning from subreddit {subreddit_name}: {e}")
+            return
+
+        if self.content_provider:
+            title, body = self.content_provider.generate_post_content(learned_context=learned_context)
+            try:
+                new_submission = subreddit.submit(title=title, selftext=body)
+                self.logger.info(
+                    f"Learned and posted to r/{subreddit_name} using account {reddit.user.me()} (Submission ID: {new_submission.id})"
+                )
+            except Exception as e:
+                self.logger.error(f"Error posting to r/{subreddit_name}: {e}")
+        else:
+            self.logger.error("No content provider available for generating post content.")

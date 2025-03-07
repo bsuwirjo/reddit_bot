@@ -2,7 +2,7 @@ import pytest
 from core.bot_manager import BotManager
 from core.account_manager import AccountManager
 
-# Dummy Reddit and related classes.
+# Dummy classes for Reddit simulation.
 class DummyReddit:
     def __init__(self, username):
         self.username = username
@@ -41,7 +41,6 @@ class DummyAccountManager:
         return self.reddit_instances[0]
 
 def test_bot_manager_initialization():
-    # Create a dummy config.
     config = {
         "accounts": [
             {"username": "bot_user_1", "password": "pass", "client_id": "cid1", "client_secret": "cs1", "user_agent": "ua1"},
@@ -80,7 +79,6 @@ def test_bot_manager_execute_command_for_bot(monkeypatch):
     }
     account_manager = DummyAccountManager()
     bot_manager = BotManager(config, account_manager)
-    # Monkeypatch each bot's handle_command to record its call.
     calls = []
     def fake_handle_command(self, command, target):
         calls.append((self.username, command, target))
