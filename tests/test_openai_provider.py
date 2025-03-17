@@ -1,12 +1,13 @@
 import pytest
+import openai
 from providers.openai_provider import OpenAIProvider
 
-# DummyResponse mimics the new ChatCompletion response format.
+# DummyResponse mimics the ChatCompletion API response.
 class DummyResponse:
     def __init__(self, text):
         self.choices = [type("Choice", (), {"message": {"content": text}})()]
 
-# Dummy completion function that accepts arbitrary kwargs.
+# Dummy completion function that accepts arbitrary keyword arguments.
 def dummy_completion_create(*args, **kwargs):
     messages = kwargs.get("messages", [])
     user_message = messages[0]["content"] if messages else ""
@@ -16,7 +17,8 @@ def dummy_completion_create(*args, **kwargs):
         return DummyResponse("Test Reply")
 
 def test_generate_post_content(monkeypatch):
-    monkeypatch.setattr("providers.openai_provider.openai.ChatCompletion.create", dummy_completion_create)
+    # Patch openai.ChatCompletion.create to use our dummy function.
+    monkeypatch.setattr(openai.ChatCompletion, "create", dummy_completion_create)
     provider = OpenAIProvider(
         "dummy_key",
         post_prompt="Test post prompt",
@@ -28,7 +30,7 @@ def test_generate_post_content(monkeypatch):
     assert body == "Test Body"
 
 def test_generate_reply_content_without_thread(monkeypatch):
-    monkeypatch.setattr("providers.openai_provider.openai.ChatCompletion.create", dummy_completion_create)
+    monkeypatch.setattr(openai.ChatCompletion, "create", dummy_completion_create)
     provider = OpenAIProvider(
         "dummy_key",
         reply_prompt="Test reply prompt",
@@ -49,11 +51,11 @@ def test_collect_thread_context():
         personality="Test personality",
         memory="Test memory"
     )
-    # Create a dummy submission representing the original post.
+    # Create dummy submission representing the original post.
     class DummySubmission:
         title = "Submission Title"
         selftext = "Submission Body"
-    # Create a dummy comment that replies to the submission.
+    # Create dummy comment replying to the submission.
     class DummyComment:
         def __init__(self, body, parent_obj):
             self.body = body
@@ -72,7 +74,7 @@ def test_generate_reply_content_with_thread(monkeypatch):
     def dummy_completion_create_capture(*args, **kwargs):
         captured_prompts.append(kwargs["messages"][0]["content"])
         return DummyResponse("Test Reply")
-    monkeypatch.setattr("providers.openai_provider.openai.ChatCompletion.create", dummy_completion_create_capture)
+    monkeypatch.setattr(openai.ChatCompletion, "create", dummy_completion_create_capture)
     
     provider = OpenAIProvider(
         "dummy_key",
@@ -92,6 +94,7 @@ def test_generate_reply_content_with_thread(monkeypatch):
             return self._parent
     submission = DummySubmission()
     dummy_comment = DummyComment("Comment Body", submission)
+    
     reply = provider.generate_reply_content(dummy_comment, 0)
     assert len(captured_prompts) == 1, "Expected one captured prompt"
     prompt = captured_prompts[0]

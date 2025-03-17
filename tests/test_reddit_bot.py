@@ -26,6 +26,7 @@ class DummySubreddit:
     def __init__(self, name):
         self.name = name
     def new(self, limit):
+        # Return a list of dummy submissions.
         return [DummySubmission(f"Post {i} Title", f"Post {i} Body") for i in range(1, limit+1)]
     def submit(self, title, selftext):
         return DummySubmission(title, selftext)
@@ -90,6 +91,7 @@ def test_reddit_bot_reply(monkeypatch):
 
 def test_reddit_bot_learn_and_post(monkeypatch):
     dummy_am = DummyAccountManager()
+    # For learn_and_post, config isn't used for subreddit list.
     config = {"replies": {"chain_length": 1}}
     content_provider = DummyContentProvider()
     dummy_reddit = DummyReddit("dummy_user")
@@ -103,9 +105,12 @@ def test_reddit_bot_learn_and_post(monkeypatch):
     
     bot.learn_and_post("dummy_subreddit")
     
+    # Since we now learn only from posts, learned_context should only contain post titles and bodies.
     assert len(submissions) == 1
     title, body = submissions[0]
     assert title == "Learned Title"
+    # Ensure learned context contains posts but not comments.
     assert "Learned Body with context:" in body
     assert "Post 1 Title" in body
-    assert "Comment 1 Body" in body
+    # Verify that no comment text is present.
+    assert "Comment 1 Body" not in body

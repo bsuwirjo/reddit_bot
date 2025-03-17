@@ -2,7 +2,6 @@ import pytest
 from core.bot_manager import BotManager
 from core.account_manager import AccountManager
 
-# Dummy classes for Reddit simulation.
 class DummyReddit:
     def __init__(self, username):
         self.username = username
@@ -33,7 +32,6 @@ class DummyComment:
         self.text = text
         self.id = "dummy_comment_id"
 
-# Dummy AccountManager that returns dummy Reddit instances.
 class DummyAccountManager:
     def __init__(self):
         self.reddit_instances = [DummyReddit("bot_user_1"), DummyReddit("bot_user_2")]

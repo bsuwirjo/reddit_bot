@@ -1,9 +1,7 @@
 import pytest
 from config.config import load_config
-import os
 
 def test_load_config(tmp_path):
-    # Create a temporary config.yaml file with minimal settings.
     config_content = """
 accounts:
   - username: "test_user"
